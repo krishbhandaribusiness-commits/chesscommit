@@ -69,9 +69,32 @@
   }
   .resign-btn:hover { color: #d44; border-color: #d44; }
 
-  .game-main { display: flex; flex: 1; overflow: hidden; }
-  .chess-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 12px; min-width: 0; }
-  .video-side { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid #1a1a1a; background: #050505; }
+  /* ============ DESKTOP LAYOUT (default) ============ */
+  /* Desktop: chess fills left, then a 340px right rail that contains BOTH the videos
+     (top) and chat (bottom). Implemented as grid for ease of mobile reflow. */
+  .game-main {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: 1fr 160px;
+    grid-template-areas:
+      "chess video"
+      "chess chat";
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .chess-side {
+    grid-area: chess;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; gap: 12px; min-width: 0; min-height: 0;
+  }
+  .video-side {
+    grid-area: video;
+    display: flex; flex-direction: column;
+    border-left: 1px solid #1a1a1a;
+    background: #050505;
+    min-height: 0;
+  }
 
   .player-bar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 560px; padding: 10px 14px; background: #111; border: 1px solid #1e1e1e; }
   .player-name { font-size: 12px; font-weight: 500; color: #aaa; letter-spacing: 1px; }
@@ -177,7 +200,14 @@
   .no-cam-icon { font-size: 32px; }
   .no-cam-text { font-size: 11px; letter-spacing: 1px; color: #444; text-align: center; padding: 0 12px; }
 
-  .chat-area { height: 160px; display: flex; flex-direction: column; border-top: 1px solid #1a1a1a; }
+  .chat-area {
+    grid-area: chat;
+    display: flex; flex-direction: column;
+    border-top: 1px solid #1a1a1a;
+    border-left: 1px solid #1a1a1a;
+    background: #050505;
+    min-height: 0;
+  }
   .chat-messages { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
   .chat-messages::-webkit-scrollbar { width: 3px; }
   .chat-messages::-webkit-scrollbar-thumb { background: #2a2a2a; }
@@ -216,28 +246,23 @@
   .play-again-btn:hover { background: #e0c080; }
 
   @media (max-width: 800px) {
-    /* Mobile layout: 3 columns — chess (big, left) | videos (middle, opp top + you bottom) | chat (thin, right) */
-    .game-main { flex-direction: row; }
+    /* Mobile: 3 columns — chess (big, left) | videos (middle) | chat (thin, right) */
+    .game-main {
+      grid-template-columns: 1fr 90px 90px;
+      grid-template-rows: 1fr;
+      grid-template-areas: "chess video chat";
+    }
     .chess-side {
-      flex: 1;
       padding: 4px;
       gap: 4px;
       justify-content: flex-start;
-      min-width: 0;
       overflow: hidden;
     }
-    /* Override .video-side: it becomes the videos column (middle), not the whole right rail */
     .video-side {
-      width: 95px;
-      flex-shrink: 0;
-      border-left: 1px solid #1a1a1a;
-      border-top: none;
       display: flex;
       flex-direction: column;
     }
-    /* The video-panel inside it holds only the two videos on mobile;
-       cam-controls move into a tiny strip, and chat is hoisted to its own column. */
-    .video-panel { flex: 1; display: flex; flex-direction: column; }
+    .video-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .cam-controls { padding: 3px 4px; gap: 3px; justify-content: center; flex-shrink: 0; }
     .ctrl-btn { padding: 2px 5px; font-size: 8px; letter-spacing: 0.5px; }
     .video-wrapper {
@@ -251,30 +276,15 @@
     .no-cam-icon { font-size: 18px; }
     .no-cam-text { font-size: 8px; padding: 0 4px; }
 
-    /* Chat becomes its own right-most column, taken out of video-panel via position */
     .chat-area {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 90px;
-      height: auto;
-      background: #050505;
-      border-left: 1px solid #1a1a1a;
       border-top: none;
-      display: flex;
-      flex-direction: column;
-      z-index: 5;
+      border-left: 1px solid #1a1a1a;
     }
     .chat-messages { padding: 4px 6px; gap: 2px; }
     .chat-msg { font-size: 9px; line-height: 1.3; }
     .chat-msg .chat-name { font-size: 8px; margin-right: 2px; }
-    .chat-input-row { border-top: 1px solid #1a1a1a; }
-    .chat-input-row input { padding: 5px 6px; font-size: 9px; min-width: 0; }
-    .chat-send-btn { padding: 5px 6px; font-size: 8px; }
-
-    /* Reserve space on the right for the absolute-positioned chat */
-    .game-main { padding-right: 90px; position: relative; }
+    .chat-input-row input { padding: 5px 6px; font-size: 9px; min-width: 0; width: 100%; }
+    .chat-send-btn { padding: 5px 4px; font-size: 8px; }
 
     /* Compact player bars and chess column */
     .player-bar { padding: 5px 7px; }
@@ -283,6 +293,7 @@
     .color-badge { font-size: 7px; padding: 1px 4px; margin-top: 2px; }
     .move-list { max-height: 22px; gap: 2px; }
     .move-chip { font-size: 8px; padding: 1px 4px; }
+    .board-container { max-width: 100%; }
 
     /* Compact header + status */
     .game-header { padding: 5px 8px; }
@@ -383,15 +394,15 @@
           <video id="localVideo" autoplay playsinline muted style="display:none; transform: scaleX(-1);"></video>
           <div class="video-label">YOU</div>
         </div>
-        <div class="chat-area">
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-msg system">Game started — good luck.</div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" placeholder="say something..." maxlength="200" onkeydown="handleChatKey(event)">
-            <button class="chat-send-btn" onclick="sendChat()">SEND</button>
-          </div>
-        </div>
+      </div>
+    </div>
+    <div class="chat-area">
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg system">Game started — good luck.</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="say something..." maxlength="200" onkeydown="handleChatKey(event)">
+        <button class="chat-send-btn" onclick="sendChat()">SEND</button>
       </div>
     </div>
   </div>
@@ -664,16 +675,14 @@ function startDrag(squareEl, x, y, isTouch) {
 
   selectSquare(sq);
 
-  // On touch, commit to drag immediately — no threshold — because we already
-  // called preventDefault which means we own this touch sequence.
-  if (isTouch) {
-    commitDrag(x, y);
-  }
+  // Don't commit to drag instantly — wait until the finger/cursor actually moves
+  // past the threshold. Pure taps will never create a ghost.
 
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
   document.addEventListener('touchmove', onDragTouchMove, { passive: false });
   document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('touchcancel', onDragEnd);
 }
 
 function moveDragGhost(x, y) {
@@ -719,13 +728,17 @@ function onDragEnd(e) {
   document.removeEventListener('mouseup', onDragEnd);
   document.removeEventListener('touchmove', onDragTouchMove);
   document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', onDragEnd);
 
   let x, y;
-  if (e.changedTouches) {
+  if (e.changedTouches && e.changedTouches[0]) {
     x = e.changedTouches[0].clientX;
     y = e.changedTouches[0].clientY;
-  } else {
+  } else if (typeof e.clientX === 'number') {
     x = e.clientX; y = e.clientY;
+  } else {
+    // touchcancel or some other event without coords — treat as no-move
+    x = dragStartX; y = dragStartY;
   }
 
   const dx = x - dragStartX, dy = y - dragStartY;
@@ -736,6 +749,11 @@ function onDragEnd(e) {
   if (dragGhostEl) {
     dragGhostEl.remove();
     dragGhostEl = null;
+  }
+  // Defensive: reset any leftover dim opacity on the source square's piece
+  if (dragFromSquare) {
+    const fromPieceEl = document.querySelector(`.square[data-square="${dragFromSquare}"] .piece`);
+    if (fromPieceEl) fromPieceEl.style.opacity = '';
   }
   isDragging = false;
   dragMoved = false;
