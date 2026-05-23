@@ -69,32 +69,9 @@
   }
   .resign-btn:hover { color: #d44; border-color: #d44; }
 
-  /* ============ DESKTOP LAYOUT (default) ============ */
-  /* Desktop: chess fills left, then a 340px right rail that contains BOTH the videos
-     (top) and chat (bottom). Implemented as grid for ease of mobile reflow. */
-  .game-main {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    grid-template-rows: 1fr 160px;
-    grid-template-areas:
-      "chess video"
-      "chess chat";
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-  }
-  .chess-side {
-    grid-area: chess;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 16px; gap: 12px; min-width: 0; min-height: 0;
-  }
-  .video-side {
-    grid-area: video;
-    display: flex; flex-direction: column;
-    border-left: 1px solid #1a1a1a;
-    background: #050505;
-    min-height: 0;
-  }
+  .game-main { display: flex; flex: 1; overflow: hidden; }
+  .chess-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 12px; min-width: 0; }
+  .video-side { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid #1a1a1a; background: #050505; }
 
   .player-bar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 560px; padding: 10px 14px; background: #111; border: 1px solid #1e1e1e; }
   .player-name { font-size: 12px; font-weight: 500; color: #aaa; letter-spacing: 1px; }
@@ -200,14 +177,7 @@
   .no-cam-icon { font-size: 32px; }
   .no-cam-text { font-size: 11px; letter-spacing: 1px; color: #444; text-align: center; padding: 0 12px; }
 
-  .chat-area {
-    grid-area: chat;
-    display: flex; flex-direction: column;
-    border-top: 1px solid #1a1a1a;
-    border-left: 1px solid #1a1a1a;
-    background: #050505;
-    min-height: 0;
-  }
+  .chat-area { height: 160px; display: flex; flex-direction: column; border-top: 1px solid #1a1a1a; }
   .chat-messages { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
   .chat-messages::-webkit-scrollbar { width: 3px; }
   .chat-messages::-webkit-scrollbar-thumb { background: #2a2a2a; }
@@ -246,62 +216,9 @@
   .play-again-btn:hover { background: #e0c080; }
 
   @media (max-width: 800px) {
-    /* Mobile: 3 columns — chess (big, left) | videos (middle) | chat (thin, right) */
-    .game-main {
-      grid-template-columns: 1fr 90px 90px;
-      grid-template-rows: 1fr;
-      grid-template-areas: "chess video chat";
-    }
-    .chess-side {
-      padding: 4px;
-      gap: 4px;
-      justify-content: flex-start;
-      overflow: hidden;
-    }
-    .video-side {
-      display: flex;
-      flex-direction: column;
-    }
-    .video-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-    .cam-controls { padding: 3px 4px; gap: 3px; justify-content: center; flex-shrink: 0; }
-    .ctrl-btn { padding: 2px 5px; font-size: 8px; letter-spacing: 0.5px; }
-    .video-wrapper {
-      flex: 1;
-      min-height: 0;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    .video-wrapper:last-of-type { border-bottom: none; }
-    .video-wrapper video { width: 100%; height: 100%; object-fit: cover; }
-    .video-label { font-size: 7px; bottom: 3px; left: 5px; letter-spacing: 0.5px; }
-    .no-cam-icon { font-size: 18px; }
-    .no-cam-text { font-size: 8px; padding: 0 4px; }
-
-    .chat-area {
-      border-top: none;
-      border-left: 1px solid #1a1a1a;
-    }
-    .chat-messages { padding: 4px 6px; gap: 2px; }
-    .chat-msg { font-size: 9px; line-height: 1.3; }
-    .chat-msg .chat-name { font-size: 8px; margin-right: 2px; }
-    .chat-input-row input { padding: 5px 6px; font-size: 9px; min-width: 0; width: 100%; }
-    .chat-send-btn { padding: 5px 4px; font-size: 8px; }
-
-    /* Compact player bars and chess column */
-    .player-bar { padding: 5px 7px; }
-    .player-name { font-size: 9px; }
-    .player-timer { font-size: 14px; min-width: 42px; }
-    .color-badge { font-size: 7px; padding: 1px 4px; margin-top: 2px; }
-    .move-list { max-height: 22px; gap: 2px; }
-    .move-chip { font-size: 8px; padding: 1px 4px; }
-    .board-container { max-width: 100%; }
-
-    /* Compact header + status */
-    .game-header { padding: 5px 8px; }
-    .game-logo { font-size: 11px; }
-    .header-right { gap: 6px; }
-    .header-right span { font-size: 7px; }
-    .resign-btn { padding: 3px 6px; font-size: 7px; }
-    .status-bar { padding: 3px 8px; font-size: 7px; }
+    .game-main { flex-direction: column; }
+    .video-side { width: 100%; height: 280px; border-left: none; border-top: 1px solid #1a1a1a; }
+    .chess-side { padding: 8px; }
   }
 </style>
 </head>
@@ -394,15 +311,15 @@
           <video id="localVideo" autoplay playsinline muted style="display:none; transform: scaleX(-1);"></video>
           <div class="video-label">YOU</div>
         </div>
-      </div>
-    </div>
-    <div class="chat-area">
-      <div class="chat-messages" id="chat-messages">
-        <div class="chat-msg system">Game started — good luck.</div>
-      </div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="say something..." maxlength="200" onkeydown="handleChatKey(event)">
-        <button class="chat-send-btn" onclick="sendChat()">SEND</button>
+        <div class="chat-area">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg system">Game started — good luck.</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="say something..." maxlength="200" onkeydown="handleChatKey(event)">
+            <button class="chat-send-btn" onclick="sendChat()">SEND</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -512,7 +429,7 @@ function renderBoard() {
   for (const rank of ranks) {
     for (const file of files) {
       const square = file + rank;
-      const isLight = (FILES.indexOf(file) + rank) % 2 === 0;
+      const isLight = (FILES.indexOf(file) + rank) % 2 === 1;
       const sqEl = document.createElement('div');
       sqEl.className = 'square ' + (isLight ? 'light' : 'dark');
       sqEl.dataset.square = square;
@@ -579,28 +496,18 @@ function renderBoard() {
   }
 }
 
-// ----- Selection helpers -----
-function selectSquare(sq) {
-  selectedSquare = sq;
-  legalMoves = game.moves({ square: sq, verbose: true });
-  renderBoard();
-}
-
-function clearSelection() {
-  selectedSquare = null;
-  legalMoves = [];
-  renderBoard();
-}
-
-// handleTap: unified logic for both mouse click and touch tap (after drag is ruled out)
-function handleTap(sq) {
-  if (!gameActive || !myTurn) return;
+// ----- Click-to-move -----
+function onSquareClick(e) {
+  if (!gameActive || !myTurn || isDragging) return;
+  const sq = e.currentTarget.dataset.square;
   if (selectedSquare) {
+    // Try to make move
     const move = legalMoves.find(m => m.to === sq);
     if (move) {
       attemptMove(selectedSquare, sq);
       return;
     }
+    // Clicked another piece of ours? re-select
     const piece = game.get(sq);
     if (piece && piece.color === myColor[0]) {
       selectSquare(sq);
@@ -615,74 +522,64 @@ function handleTap(sq) {
   }
 }
 
-// Suppress click immediately after a handled mousedown (avoids double-fire on
-// own pieces). Set to true by onSquareMouseDown, consumed by onSquareClick.
-let suppressNextClick = false;
+function selectSquare(sq) {
+  selectedSquare = sq;
+  legalMoves = game.moves({ square: sq, verbose: true });
+  renderBoard();
+}
 
-function onSquareClick(e) {
-  if (suppressNextClick) {
-    suppressNextClick = false;
-    return;
-  }
-  if (!gameActive || !myTurn) return;
-  if (isDragging) return; // mouse drag still in progress (shouldn't happen on click)
-  const sq = e.currentTarget.dataset.square;
-  handleTap(sq);
+function clearSelection() {
+  selectedSquare = null;
+  legalMoves = [];
+  renderBoard();
 }
 
 // ----- Drag-to-move -----
 let isDragging = false;
-let dragMoved = false;      // did the finger/cursor actually move enough to count as drag?
 let dragPiece = null;
 let dragFromSquare = null;
 let dragGhostEl = null;
-let dragStartX = 0;
-let dragStartY = 0;
-const DRAG_THRESHOLD = 8;  // pixels before we commit to a drag
 
 function onSquareMouseDown(e) {
   if (e.button !== 0) return;
-  // Only suppress the follow-up click if this mousedown is on one of our own
-  // pieces (i.e., startDrag will actually do work). Otherwise let the click
-  // event fire and drive a click-to-move via onSquareClick.
-  const sq = e.currentTarget.dataset.square;
-  const piece = game && game.get(sq);
-  const isOurPiece = gameActive && myTurn && piece && piece.color === myColor[0];
-  if (isOurPiece) {
-    suppressNextClick = true;
-    e.preventDefault();
-    startDrag(e.currentTarget, e.clientX, e.clientY, false);
-  }
+  startDrag(e.currentTarget, e.clientX, e.clientY, e);
 }
 function onSquareTouchStart(e) {
   const t = e.touches[0];
-  startDrag(e.currentTarget, t.clientX, t.clientY, true);
-  e.preventDefault();
+  startDrag(e.currentTarget, t.clientX, t.clientY, e);
 }
 
-function startDrag(squareEl, x, y, isTouch) {
+function startDrag(squareEl, x, y, originalEvent) {
   if (!gameActive || !myTurn) return;
   const sq = squareEl.dataset.square;
   const piece = game.get(sq);
   if (!piece || piece.color !== myColor[0]) return;
 
-  isDragging = false;
-  dragMoved = false;
-  dragFromSquare = sq;
-  dragPiece = pieceCode(piece);
-  dragStartX = x;
-  dragStartY = y;
-
+  // Select square (shows legal moves)
   selectSquare(sq);
 
-  // Don't commit to drag instantly — wait until the finger/cursor actually moves
-  // past the threshold. Pure taps will never create a ghost.
+  // Begin dragging
+  isDragging = true;
+  dragFromSquare = sq;
+  dragPiece = pieceCode(piece);
+
+  // Hide the piece on its square (visually)
+  const pieceEl = squareEl.querySelector('.piece');
+  if (pieceEl) pieceEl.style.opacity = '0.3';
+
+  // Create ghost element
+  dragGhostEl = document.createElement('div');
+  dragGhostEl.className = 'piece dragging';
+  dragGhostEl.innerHTML = PIECE_SVG[dragPiece];
+  document.body.appendChild(dragGhostEl);
+  moveDragGhost(x, y);
+
+  originalEvent.preventDefault();
 
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
   document.addEventListener('touchmove', onDragTouchMove, { passive: false });
   document.addEventListener('touchend', onDragEnd);
-  document.addEventListener('touchcancel', onDragEnd);
 }
 
 function moveDragGhost(x, y) {
@@ -692,35 +589,11 @@ function moveDragGhost(x, y) {
   }
 }
 
-function onDragMove(e) {
-  const x = e.clientX, y = e.clientY;
-  commitDragIfNeeded(x, y);
-  moveDragGhost(x, y);
-}
+function onDragMove(e) { moveDragGhost(e.clientX, e.clientY); }
 function onDragTouchMove(e) {
   const t = e.touches[0];
-  commitDragIfNeeded(t.clientX, t.clientY);
   moveDragGhost(t.clientX, t.clientY);
   e.preventDefault();
-}
-
-function commitDrag(x, y) {
-  if (isDragging) return;
-  isDragging = true;
-  dragMoved = true;
-  const fromEl = document.querySelector(`.square[data-square="${dragFromSquare}"] .piece`);
-  if (fromEl) fromEl.style.opacity = '0.3';
-  dragGhostEl = document.createElement('div');
-  dragGhostEl.className = 'piece dragging';
-  dragGhostEl.innerHTML = PIECE_SVG[dragPiece];
-  document.body.appendChild(dragGhostEl);
-  moveDragGhost(x, y);
-}
-
-function commitDragIfNeeded(x, y) {
-  if (isDragging) return;
-  const dx = x - dragStartX, dy = y - dragStartY;
-  if (Math.sqrt(dx*dx + dy*dy) >= DRAG_THRESHOLD) commitDrag(x, y);
 }
 
 function onDragEnd(e) {
@@ -728,67 +601,45 @@ function onDragEnd(e) {
   document.removeEventListener('mouseup', onDragEnd);
   document.removeEventListener('touchmove', onDragTouchMove);
   document.removeEventListener('touchend', onDragEnd);
-  document.removeEventListener('touchcancel', onDragEnd);
 
   let x, y;
-  if (e.changedTouches && e.changedTouches[0]) {
+  if (e.changedTouches) {
     x = e.changedTouches[0].clientX;
     y = e.changedTouches[0].clientY;
-  } else if (typeof e.clientX === 'number') {
-    x = e.clientX; y = e.clientY;
   } else {
-    // touchcancel or some other event without coords — treat as no-move
-    x = dragStartX; y = dragStartY;
+    x = e.clientX; y = e.clientY;
   }
 
-  const dx = x - dragStartX, dy = y - dragStartY;
-  const movedFar = Math.sqrt(dx*dx + dy*dy) >= DRAG_THRESHOLD;
-  const wasDrag = isDragging && movedFar;
-
-  // Clean up ghost regardless
+  // Determine the square under the cursor
   if (dragGhostEl) {
+    dragGhostEl.style.display = 'none'; // so elementFromPoint sees the square below
+    const target = document.elementFromPoint(x, y);
     dragGhostEl.remove();
     dragGhostEl = null;
-  }
-  // Defensive: reset any leftover dim opacity on the source square's piece
-  if (dragFromSquare) {
-    const fromPieceEl = document.querySelector(`.square[data-square="${dragFromSquare}"] .piece`);
-    if (fromPieceEl) fromPieceEl.style.opacity = '';
-  }
-  isDragging = false;
-  dragMoved = false;
 
-  if (!wasDrag) {
-    // Tap — handleTap on the source square (it's already selected, so a second
-    // tap on same square deselects; tap on a legal-move square moves there)
+    let dropSquare = null;
+    if (target) {
+      const sqEl = target.closest('.square');
+      if (sqEl) dropSquare = sqEl.dataset.square;
+    }
+
     const fromSq = dragFromSquare;
+    isDragging = false;
     dragFromSquare = null;
     dragPiece = null;
-    handleTap(fromSq);
-    return;
-  }
 
-  // Real drag drop — find the square under the finger/cursor
-  // Temporarily hide ghost so elementFromPoint hits the board behind it
-  const fromSq = dragFromSquare;
-  dragFromSquare = null;
-  dragPiece = null;
-
-  const target = document.elementFromPoint(x, y);
-  let dropSquare = null;
-  if (target) {
-    const sqEl = target.closest('.square');
-    if (sqEl) dropSquare = sqEl.dataset.square;
-  }
-
-  if (dropSquare && dropSquare !== fromSq) {
-    const move = legalMoves.find(m => m.to === dropSquare);
-    if (move) {
-      attemptMove(fromSq, dropSquare);
-      return;
+    if (dropSquare && dropSquare !== fromSq) {
+      const move = legalMoves.find(m => m.to === dropSquare);
+      if (move) {
+        attemptMove(fromSq, dropSquare);
+        return;
+      }
     }
+    // Snap back: just clear selection on drop-off; re-render restores piece opacity
+    clearSelection();
+  } else {
+    isDragging = false;
   }
-  clearSelection();
 }
 
 // ----- Make the actual move -----
@@ -1114,7 +965,6 @@ async function startCamera() {
     const lv = document.getElementById('localVideo');
     lv.srcObject = localStream;
     lv.style.display = 'block';
-    lv.play().catch(() => {}); // nudge autoplay on iOS Safari
     document.getElementById('local-no-cam').style.display = 'none';
   } catch (e) {
     const el = document.getElementById('local-no-cam');
@@ -1142,15 +992,9 @@ function createPC() {
   };
   peerConnection.ontrack = (e) => {
     const rv = document.getElementById('remoteVideo');
-    // Only assign srcObject if it's a new stream — re-assigning the same
-    // stream on mobile causes a flicker/freeze as the element resets.
-    if (rv.srcObject !== e.streams[0]) {
-      rv.srcObject = e.streams[0];
-    }
+    rv.srcObject = e.streams[0];
     rv.style.display = 'block';
     document.getElementById('remote-no-cam').style.display = 'none';
-    // On mobile Safari, autoplay sometimes stalls — nudge it.
-    rv.play().catch(() => {});
   };
   peerConnection.onconnectionstatechange = () => {
     const s = peerConnection.connectionState;
