@@ -103,8 +103,8 @@
     justify-content: center;
     cursor: default;
   }
-  .square.light { background: #ebe0c2; }
-  .square.dark { background: #6b5538; }
+  .square.light { background: #6b5538; }
+  .square.dark { background: #ebe0c2; }
   .square.selected { box-shadow: inset 0 0 0 4px #c8a96e; }
   .square.legal-move::after {
     content: '';
@@ -151,8 +151,8 @@
   }
   .square .file-label { bottom: 2px; right: 4px; }
   .square .rank-label { top: 2px; left: 4px; }
-  .square.light .file-label, .square.light .rank-label { color: #6b5538; }
-  .square.dark .file-label, .square.dark .rank-label { color: #ebe0c2; }
+  .square.light .file-label, .square.light .rank-label { color: #ebe0c2; }
+  .square.dark .file-label, .square.dark .rank-label { color: #6b5538; }
 
   .move-list { max-width: 560px; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; max-height: 48px; overflow-y: auto; padding: 4px 0; }
   .move-list::-webkit-scrollbar { height: 2px; width: 2px; }
@@ -543,13 +543,13 @@ const DRAG_THRESHOLD = 8;  // pixels before we commit to a drag
 
 function onSquareMouseDown(e) {
   if (e.button !== 0) return;
-  e.preventDefault(); // prevents synthetic click on desktop too
+  e.preventDefault();
   startDrag(e.currentTarget, e.clientX, e.clientY, false);
 }
 function onSquareTouchStart(e) {
   const t = e.touches[0];
   startDrag(e.currentTarget, t.clientX, t.clientY, true);
-  e.preventDefault(); // suppress synthetic mouse/click events on touch
+  e.preventDefault();
 }
 
 function startDrag(squareEl, x, y, isTouch) {
@@ -558,15 +558,20 @@ function startDrag(squareEl, x, y, isTouch) {
   const piece = game.get(sq);
   if (!piece || piece.color !== myColor[0]) return;
 
-  isDragging = false;    // not committed to drag yet
+  isDragging = false;
   dragMoved = false;
   dragFromSquare = sq;
   dragPiece = pieceCode(piece);
   dragStartX = x;
   dragStartY = y;
 
-  // Pre-select to show legal move dots immediately
   selectSquare(sq);
+
+  // On touch, commit to drag immediately — no threshold — because we already
+  // called preventDefault which means we own this touch sequence.
+  if (isTouch) {
+    commitDrag(x, y);
+  }
 
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
@@ -593,22 +598,23 @@ function onDragTouchMove(e) {
   e.preventDefault();
 }
 
-function commitDragIfNeeded(x, y) {
+function commitDrag(x, y) {
   if (isDragging) return;
-  const dx = x - dragStartX, dy = y - dragStartY;
-  if (Math.sqrt(dx*dx + dy*dy) < DRAG_THRESHOLD) return;
-  // Commit to drag
   isDragging = true;
   dragMoved = true;
-  // Dim piece on source square
   const fromEl = document.querySelector(`.square[data-square="${dragFromSquare}"] .piece`);
   if (fromEl) fromEl.style.opacity = '0.3';
-  // Create ghost
   dragGhostEl = document.createElement('div');
   dragGhostEl.className = 'piece dragging';
   dragGhostEl.innerHTML = PIECE_SVG[dragPiece];
   document.body.appendChild(dragGhostEl);
-  moveDragGhost(dragStartX, dragStartY);
+  moveDragGhost(x, y);
+}
+
+function commitDragIfNeeded(x, y) {
+  if (isDragging) return;
+  const dx = x - dragStartX, dy = y - dragStartY;
+  if (Math.sqrt(dx*dx + dy*dy) >= DRAG_THRESHOLD) commitDrag(x, y);
 }
 
 function onDragEnd(e) {
@@ -625,51 +631,49 @@ function onDragEnd(e) {
     x = e.clientX; y = e.clientY;
   }
 
-  const wasDrag = isDragging && dragMoved;
+  const dx = x - dragStartX, dy = y - dragStartY;
+  const movedFar = Math.sqrt(dx*dx + dy*dy) >= DRAG_THRESHOLD;
+  const wasDrag = isDragging && movedFar;
+
+  // Clean up ghost regardless
+  if (dragGhostEl) {
+    dragGhostEl.remove();
+    dragGhostEl = null;
+  }
   isDragging = false;
   dragMoved = false;
 
   if (!wasDrag) {
-    // Short press — treat as tap/click
+    // Tap — handleTap on the source square (it's already selected, so a second
+    // tap on same square deselects; tap on a legal-move square moves there)
     const fromSq = dragFromSquare;
     dragFromSquare = null;
     dragPiece = null;
-    // selectedSquare is already set to fromSq from startDrag's selectSquare call
-    // If there was already a selection before this tap, handleTap from the previous
-    // mousedown already set it. Just re-invoke handleTap to move or reselect.
     handleTap(fromSq);
     return;
   }
 
-  // Was a real drag — find drop target
-  if (dragGhostEl) {
-    dragGhostEl.style.display = 'none';
-    const target = document.elementFromPoint(x, y);
-    dragGhostEl.remove();
-    dragGhostEl = null;
+  // Real drag drop — find the square under the finger/cursor
+  // Temporarily hide ghost so elementFromPoint hits the board behind it
+  const fromSq = dragFromSquare;
+  dragFromSquare = null;
+  dragPiece = null;
 
-    let dropSquare = null;
-    if (target) {
-      const sqEl = target.closest('.square');
-      if (sqEl) dropSquare = sqEl.dataset.square;
-    }
-
-    const fromSq = dragFromSquare;
-    dragFromSquare = null;
-    dragPiece = null;
-
-    if (dropSquare && dropSquare !== fromSq) {
-      const move = legalMoves.find(m => m.to === dropSquare);
-      if (move) {
-        attemptMove(fromSq, dropSquare);
-        return;
-      }
-    }
-    clearSelection();
-  } else {
-    dragFromSquare = null;
-    dragPiece = null;
+  const target = document.elementFromPoint(x, y);
+  let dropSquare = null;
+  if (target) {
+    const sqEl = target.closest('.square');
+    if (sqEl) dropSquare = sqEl.dataset.square;
   }
+
+  if (dropSquare && dropSquare !== fromSq) {
+    const move = legalMoves.find(m => m.to === dropSquare);
+    if (move) {
+      attemptMove(fromSq, dropSquare);
+      return;
+    }
+  }
+  clearSelection();
 }
 
 // ----- Make the actual move -----
