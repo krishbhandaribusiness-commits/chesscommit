@@ -489,25 +489,34 @@ function renderBoard() {
 
       sqEl.addEventListener('mousedown', onSquareMouseDown);
       sqEl.addEventListener('touchstart', onSquareTouchStart, { passive: false });
-      sqEl.addEventListener('click', onSquareClick);
 
       grid.appendChild(sqEl);
     }
   }
 }
 
-// ----- Click-to-move -----
-function onSquareClick(e) {
-  if (!gameActive || !myTurn || isDragging) return;
-  const sq = e.currentTarget.dataset.square;
+// ----- Selection helpers -----
+function selectSquare(sq) {
+  selectedSquare = sq;
+  legalMoves = game.moves({ square: sq, verbose: true });
+  renderBoard();
+}
+
+function clearSelection() {
+  selectedSquare = null;
+  legalMoves = [];
+  renderBoard();
+}
+
+// handleTap: unified logic for both mouse click and touch tap (after drag is ruled out)
+function handleTap(sq) {
+  if (!gameActive || !myTurn) return;
   if (selectedSquare) {
-    // Try to make move
     const move = legalMoves.find(m => m.to === sq);
     if (move) {
       attemptMove(selectedSquare, sq);
       return;
     }
-    // Clicked another piece of ours? re-select
     const piece = game.get(sq);
     if (piece && piece.color === myColor[0]) {
       selectSquare(sq);
@@ -522,59 +531,42 @@ function onSquareClick(e) {
   }
 }
 
-function selectSquare(sq) {
-  selectedSquare = sq;
-  legalMoves = game.moves({ square: sq, verbose: true });
-  renderBoard();
-}
-
-function clearSelection() {
-  selectedSquare = null;
-  legalMoves = [];
-  renderBoard();
-}
-
 // ----- Drag-to-move -----
 let isDragging = false;
+let dragMoved = false;      // did the finger/cursor actually move enough to count as drag?
 let dragPiece = null;
 let dragFromSquare = null;
 let dragGhostEl = null;
+let dragStartX = 0;
+let dragStartY = 0;
+const DRAG_THRESHOLD = 8;  // pixels before we commit to a drag
 
 function onSquareMouseDown(e) {
   if (e.button !== 0) return;
-  startDrag(e.currentTarget, e.clientX, e.clientY, e);
+  e.preventDefault(); // prevents synthetic click on desktop too
+  startDrag(e.currentTarget, e.clientX, e.clientY, false);
 }
 function onSquareTouchStart(e) {
   const t = e.touches[0];
-  startDrag(e.currentTarget, t.clientX, t.clientY, e);
+  startDrag(e.currentTarget, t.clientX, t.clientY, true);
+  e.preventDefault(); // suppress synthetic mouse/click events on touch
 }
 
-function startDrag(squareEl, x, y, originalEvent) {
+function startDrag(squareEl, x, y, isTouch) {
   if (!gameActive || !myTurn) return;
   const sq = squareEl.dataset.square;
   const piece = game.get(sq);
   if (!piece || piece.color !== myColor[0]) return;
 
-  // Select square (shows legal moves)
-  selectSquare(sq);
-
-  // Begin dragging
-  isDragging = true;
+  isDragging = false;    // not committed to drag yet
+  dragMoved = false;
   dragFromSquare = sq;
   dragPiece = pieceCode(piece);
+  dragStartX = x;
+  dragStartY = y;
 
-  // Hide the piece on its square (visually)
-  const pieceEl = squareEl.querySelector('.piece');
-  if (pieceEl) pieceEl.style.opacity = '0.3';
-
-  // Create ghost element
-  dragGhostEl = document.createElement('div');
-  dragGhostEl.className = 'piece dragging';
-  dragGhostEl.innerHTML = PIECE_SVG[dragPiece];
-  document.body.appendChild(dragGhostEl);
-  moveDragGhost(x, y);
-
-  originalEvent.preventDefault();
+  // Pre-select to show legal move dots immediately
+  selectSquare(sq);
 
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
@@ -589,11 +581,34 @@ function moveDragGhost(x, y) {
   }
 }
 
-function onDragMove(e) { moveDragGhost(e.clientX, e.clientY); }
+function onDragMove(e) {
+  const x = e.clientX, y = e.clientY;
+  commitDragIfNeeded(x, y);
+  moveDragGhost(x, y);
+}
 function onDragTouchMove(e) {
   const t = e.touches[0];
+  commitDragIfNeeded(t.clientX, t.clientY);
   moveDragGhost(t.clientX, t.clientY);
   e.preventDefault();
+}
+
+function commitDragIfNeeded(x, y) {
+  if (isDragging) return;
+  const dx = x - dragStartX, dy = y - dragStartY;
+  if (Math.sqrt(dx*dx + dy*dy) < DRAG_THRESHOLD) return;
+  // Commit to drag
+  isDragging = true;
+  dragMoved = true;
+  // Dim piece on source square
+  const fromEl = document.querySelector(`.square[data-square="${dragFromSquare}"] .piece`);
+  if (fromEl) fromEl.style.opacity = '0.3';
+  // Create ghost
+  dragGhostEl = document.createElement('div');
+  dragGhostEl.className = 'piece dragging';
+  dragGhostEl.innerHTML = PIECE_SVG[dragPiece];
+  document.body.appendChild(dragGhostEl);
+  moveDragGhost(dragStartX, dragStartY);
 }
 
 function onDragEnd(e) {
@@ -610,9 +625,25 @@ function onDragEnd(e) {
     x = e.clientX; y = e.clientY;
   }
 
-  // Determine the square under the cursor
+  const wasDrag = isDragging && dragMoved;
+  isDragging = false;
+  dragMoved = false;
+
+  if (!wasDrag) {
+    // Short press — treat as tap/click
+    const fromSq = dragFromSquare;
+    dragFromSquare = null;
+    dragPiece = null;
+    // selectedSquare is already set to fromSq from startDrag's selectSquare call
+    // If there was already a selection before this tap, handleTap from the previous
+    // mousedown already set it. Just re-invoke handleTap to move or reselect.
+    handleTap(fromSq);
+    return;
+  }
+
+  // Was a real drag — find drop target
   if (dragGhostEl) {
-    dragGhostEl.style.display = 'none'; // so elementFromPoint sees the square below
+    dragGhostEl.style.display = 'none';
     const target = document.elementFromPoint(x, y);
     dragGhostEl.remove();
     dragGhostEl = null;
@@ -624,7 +655,6 @@ function onDragEnd(e) {
     }
 
     const fromSq = dragFromSquare;
-    isDragging = false;
     dragFromSquare = null;
     dragPiece = null;
 
@@ -635,10 +665,10 @@ function onDragEnd(e) {
         return;
       }
     }
-    // Snap back: just clear selection on drop-off; re-render restores piece opacity
     clearSelection();
   } else {
-    isDragging = false;
+    dragFromSquare = null;
+    dragPiece = null;
   }
 }
 
@@ -965,6 +995,7 @@ async function startCamera() {
     const lv = document.getElementById('localVideo');
     lv.srcObject = localStream;
     lv.style.display = 'block';
+    lv.play().catch(() => {}); // nudge autoplay on iOS Safari
     document.getElementById('local-no-cam').style.display = 'none';
   } catch (e) {
     const el = document.getElementById('local-no-cam');
@@ -992,9 +1023,15 @@ function createPC() {
   };
   peerConnection.ontrack = (e) => {
     const rv = document.getElementById('remoteVideo');
-    rv.srcObject = e.streams[0];
+    // Only assign srcObject if it's a new stream — re-assigning the same
+    // stream on mobile causes a flicker/freeze as the element resets.
+    if (rv.srcObject !== e.streams[0]) {
+      rv.srcObject = e.streams[0];
+    }
     rv.style.display = 'block';
     document.getElementById('remote-no-cam').style.display = 'none';
+    // On mobile Safari, autoplay sometimes stalls — nudge it.
+    rv.play().catch(() => {});
   };
   peerConnection.onconnectionstatechange = () => {
     const s = peerConnection.connectionState;
