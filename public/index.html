@@ -103,8 +103,8 @@
     justify-content: center;
     cursor: default;
   }
-  .square.light { background: #6b5538; }
-  .square.dark { background: #ebe0c2; }
+  .square.light { background: #ebe0c2; }
+  .square.dark { background: #6b5538; }
   .square.selected { box-shadow: inset 0 0 0 4px #c8a96e; }
   .square.legal-move::after {
     content: '';
@@ -151,8 +151,8 @@
   }
   .square .file-label { bottom: 2px; right: 4px; }
   .square .rank-label { top: 2px; left: 4px; }
-  .square.light .file-label, .square.light .rank-label { color: #ebe0c2; }
-  .square.dark .file-label, .square.dark .rank-label { color: #6b5538; }
+  .square.light .file-label, .square.light .rank-label { color: #6b5538; }
+  .square.dark .file-label, .square.dark .rank-label { color: #ebe0c2; }
 
   .move-list { max-width: 560px; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; max-height: 48px; overflow-y: auto; padding: 4px 0; }
   .move-list::-webkit-scrollbar { height: 2px; width: 2px; }
@@ -216,9 +216,81 @@
   .play-again-btn:hover { background: #e0c080; }
 
   @media (max-width: 800px) {
-    .game-main { flex-direction: column; }
-    .video-side { width: 100%; height: 280px; border-left: none; border-top: 1px solid #1a1a1a; }
-    .chess-side { padding: 8px; }
+    /* Mobile layout: 3 columns — chess (big, left) | videos (middle, opp top + you bottom) | chat (thin, right) */
+    .game-main { flex-direction: row; }
+    .chess-side {
+      flex: 1;
+      padding: 4px;
+      gap: 4px;
+      justify-content: flex-start;
+      min-width: 0;
+      overflow: hidden;
+    }
+    /* Override .video-side: it becomes the videos column (middle), not the whole right rail */
+    .video-side {
+      width: 95px;
+      flex-shrink: 0;
+      border-left: 1px solid #1a1a1a;
+      border-top: none;
+      display: flex;
+      flex-direction: column;
+    }
+    /* The video-panel inside it holds only the two videos on mobile;
+       cam-controls move into a tiny strip, and chat is hoisted to its own column. */
+    .video-panel { flex: 1; display: flex; flex-direction: column; }
+    .cam-controls { padding: 3px 4px; gap: 3px; justify-content: center; flex-shrink: 0; }
+    .ctrl-btn { padding: 2px 5px; font-size: 8px; letter-spacing: 0.5px; }
+    .video-wrapper {
+      flex: 1;
+      min-height: 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .video-wrapper:last-of-type { border-bottom: none; }
+    .video-wrapper video { width: 100%; height: 100%; object-fit: cover; }
+    .video-label { font-size: 7px; bottom: 3px; left: 5px; letter-spacing: 0.5px; }
+    .no-cam-icon { font-size: 18px; }
+    .no-cam-text { font-size: 8px; padding: 0 4px; }
+
+    /* Chat becomes its own right-most column, taken out of video-panel via position */
+    .chat-area {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 90px;
+      height: auto;
+      background: #050505;
+      border-left: 1px solid #1a1a1a;
+      border-top: none;
+      display: flex;
+      flex-direction: column;
+      z-index: 5;
+    }
+    .chat-messages { padding: 4px 6px; gap: 2px; }
+    .chat-msg { font-size: 9px; line-height: 1.3; }
+    .chat-msg .chat-name { font-size: 8px; margin-right: 2px; }
+    .chat-input-row { border-top: 1px solid #1a1a1a; }
+    .chat-input-row input { padding: 5px 6px; font-size: 9px; min-width: 0; }
+    .chat-send-btn { padding: 5px 6px; font-size: 8px; }
+
+    /* Reserve space on the right for the absolute-positioned chat */
+    .game-main { padding-right: 90px; position: relative; }
+
+    /* Compact player bars and chess column */
+    .player-bar { padding: 5px 7px; }
+    .player-name { font-size: 9px; }
+    .player-timer { font-size: 14px; min-width: 42px; }
+    .color-badge { font-size: 7px; padding: 1px 4px; margin-top: 2px; }
+    .move-list { max-height: 22px; gap: 2px; }
+    .move-chip { font-size: 8px; padding: 1px 4px; }
+
+    /* Compact header + status */
+    .game-header { padding: 5px 8px; }
+    .game-logo { font-size: 11px; }
+    .header-right { gap: 6px; }
+    .header-right span { font-size: 7px; }
+    .resign-btn { padding: 3px 6px; font-size: 7px; }
+    .status-bar { padding: 3px 8px; font-size: 7px; }
   }
 </style>
 </head>
@@ -429,7 +501,7 @@ function renderBoard() {
   for (const rank of ranks) {
     for (const file of files) {
       const square = file + rank;
-      const isLight = (FILES.indexOf(file) + rank) % 2 === 1;
+      const isLight = (FILES.indexOf(file) + rank) % 2 === 0;
       const sqEl = document.createElement('div');
       sqEl.className = 'square ' + (isLight ? 'light' : 'dark');
       sqEl.dataset.square = square;
@@ -489,6 +561,7 @@ function renderBoard() {
 
       sqEl.addEventListener('mousedown', onSquareMouseDown);
       sqEl.addEventListener('touchstart', onSquareTouchStart, { passive: false });
+      sqEl.addEventListener('click', onSquareClick);
 
       grid.appendChild(sqEl);
     }
@@ -531,6 +604,21 @@ function handleTap(sq) {
   }
 }
 
+// Suppress click immediately after a handled mousedown (avoids double-fire on
+// own pieces). Set to true by onSquareMouseDown, consumed by onSquareClick.
+let suppressNextClick = false;
+
+function onSquareClick(e) {
+  if (suppressNextClick) {
+    suppressNextClick = false;
+    return;
+  }
+  if (!gameActive || !myTurn) return;
+  if (isDragging) return; // mouse drag still in progress (shouldn't happen on click)
+  const sq = e.currentTarget.dataset.square;
+  handleTap(sq);
+}
+
 // ----- Drag-to-move -----
 let isDragging = false;
 let dragMoved = false;      // did the finger/cursor actually move enough to count as drag?
@@ -543,8 +631,17 @@ const DRAG_THRESHOLD = 8;  // pixels before we commit to a drag
 
 function onSquareMouseDown(e) {
   if (e.button !== 0) return;
-  e.preventDefault();
-  startDrag(e.currentTarget, e.clientX, e.clientY, false);
+  // Only suppress the follow-up click if this mousedown is on one of our own
+  // pieces (i.e., startDrag will actually do work). Otherwise let the click
+  // event fire and drive a click-to-move via onSquareClick.
+  const sq = e.currentTarget.dataset.square;
+  const piece = game && game.get(sq);
+  const isOurPiece = gameActive && myTurn && piece && piece.color === myColor[0];
+  if (isOurPiece) {
+    suppressNextClick = true;
+    e.preventDefault();
+    startDrag(e.currentTarget, e.clientX, e.clientY, false);
+  }
 }
 function onSquareTouchStart(e) {
   const t = e.touches[0];
